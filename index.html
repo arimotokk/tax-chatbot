@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Tax Q&A Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .question {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 18px 18px 4px 18px;
+            display: inline-block;
+            max-width: 80%;
+            margin-left: auto;
+            float: right;
+            clear: both;
+        }
+        
+        .answer-block {
+            background: white;
+            padding: 20px;
+            border-radius: 18px 18px 18px 4px;
+            max-width: 85%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            clear: both;
+        }
+        
+        .answer {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .sources, .excerpts {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .sources h4, .excerpts h4 {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sources p, .excerpts p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .excerpts p {
+            background: #f8f9fa;
+            padding: 10px;
+            border-left: 3px solid #667eea;
+            font-style: italic;
+        }
+        
+        .input-container {
+            padding: 30px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #question-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #question-input:focus {
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇯🇵 Japanese Tax Q&A Bot</h1>
+            <p>Ask questions about Japanese individual income tax based on official NTA guidelines</p>
+        </div>
+        
+        <div class="chat-container" id="chat-container">
+            <div class="message">
+                <div class="answer-block">
+                    <div class="answer">
+                        👋 Hello! I'm your Japanese tax assistant. Ask me anything about Japanese individual income tax laws and regulations.
+                        <br><br>
+                        <strong>Example questions:</strong>
+                        <ul style="margin-top: 10px; margin-left: 20px;">
+                            <li>What is the tax rate for residents in Japan?</li>
+                            <li>How is retirement income taxed?</li>
+                            <li>What deductions are available for individual taxpayers?</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Searching tax documents and generating answer...</p>
+        </div>
+        
+        <div class="input-container">
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="clearHistory()">Clear History</button>
+            </div>
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="question-input" 
+                    placeholder="Ask a question about Japanese income tax..."
+                    onkeypress="if(event.key === 'Enter') askQuestion()"
+                >
+                <button class="btn btn-primary" onclick="askQuestion()" id="ask-btn">Ask</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function askQuestion() {
+            const input = document.getElementById('question-input');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            const chatContainer = document.getElementById('chat-container');
+            const loading = document.getElementById('loading');
+            const askBtn = document.getElementById('ask-btn');
+            
+            // Add question to chat
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'message';
+            questionDiv.innerHTML = `<div class="question">${escapeHtml(question)}</div>`;
+            chatContainer.appendChild(questionDiv);
+            
+            // Clear input and disable
+            input.value = '';
+            input.disabled = true;
+            askBtn.disabled = true;
+            loading.classList.add('active');
+            
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Add answer to chat
+                    const answerDiv = document.createElement('div');
+                    answerDiv.className = 'message';
+                    
+                    let html = '<div class="answer-block">';
+                    html += `<div class="answer">${escapeHtml(data.answer).replace(/\n/g, '<br>')}</div>`;
+                    
+                    if (data.sources) {
+                        html += '<div class="sources"><h4>📚 Sources</h4>';
+                        html += `<p>${escapeHtml(data.sources).replace(/\n/g, '<br>')}</p></div>`;
+                    }
+                    
+                    if (data.excerpts) {
+                        html += '<div class="excerpts"><h4>📝 Relevant Excerpts</h4>';
+                        html += `<p>${escapeHtml(data.excerpts).replace(/\n/g, '<br>')}</p></div>`;
+                    }
+                    
+                    html += '</div>';
+                    answerDiv.innerHTML = html;
+                    chatContainer.appendChild(answerDiv);
+                } else {
+                    // Show error
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'message';
+                    errorDiv.innerHTML = `<div class="error">Error: ${escapeHtml(data.error)}</div>`;
+                    chatContainer.appendChild(errorDiv);
+                }
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message';
+                errorDiv.innerHTML = `<div class="error">Error: ${escapeHtml(error.message)}</div>`;
+                chatContainer.appendChild(errorDiv);
+            } finally {
+                loading.classList.remove('active');
+                input.disabled = false;
+                askBtn.disabled = false;
+                input.focus();
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+        
+        async function clearHistory() {
+            if (!confirm('Clear conversation history?')) return;
+            
+            try {
+                await fetch('/clear', { method: 'POST' });
+                const chatContainer = document.getElementById('chat-container');
+                chatContainer.innerHTML = `
+                    <div class="message">
+                        <div class="answer-block">
+                            <div class="answer">
+                                Conversation history cleared. Ask me a new question!
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                alert('Error clearing history: ' + error.message);
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
